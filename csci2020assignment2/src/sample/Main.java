@@ -1,6 +1,8 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -8,9 +10,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+
+import java.io.*;
 
 public class Main extends Application {
 
@@ -28,12 +33,24 @@ public class Main extends Application {
         buttons.add(download,1,0);
 
         TableView tableClient=new TableView();
-        TableColumn<String, String> clientColumn=new TableColumn<>();
+        TableColumn<TestFile, String> clientColumn=new TableColumn<>();
         clientColumn.setMinWidth(400);
+        clientColumn.setCellValueFactory(new PropertyValueFactory<>("filename"));
         tableClient.getColumns().add(clientColumn);
 
+        File clientFile=new File("./clientFiles");
+
+        ObservableList<TestFile> testFiles= FXCollections.observableArrayList();
+
+        for(File entryFile:clientFile.listFiles()){
+            TestFile testFile=new TestFile(entryFile, entryFile.getName());
+            testFiles.add(testFile);
+            tableClient.getItems().add(testFile);
+        }
+
+
         TableView tableServer=new TableView();
-        TableColumn<String, String> serverColumn=new TableColumn<>();
+        TableColumn<TestFile, String> serverColumn=new TableColumn<>();
         serverColumn.setMinWidth(400);
         tableServer.getColumns().add(serverColumn);
 
