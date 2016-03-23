@@ -18,10 +18,12 @@ import javafx.stage.Stage;
 import java.io.*;
 
 public class Main extends Application {
+    private static String name, directory;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
         //Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
+
         primaryStage.setTitle("File Sharer");
         BorderPane layout=new BorderPane();
 
@@ -38,7 +40,7 @@ public class Main extends Application {
         clientColumn.setCellValueFactory(new PropertyValueFactory<>("filename"));
         tableClient.getColumns().add(clientColumn);
 
-        File clientFile=new File("./clientFiles");
+        File clientFile=new File("./"+directory);
 
         ObservableList<TestFile> testFiles= FXCollections.observableArrayList();
 
@@ -63,6 +65,14 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
+        //In the settings, the program arguments are set to 100548033 and clientFiles
+        if(args.length!=2){
+            System.out.println("Incorrect amount of arguments. <computer name> <directory> expected");
+            System.exit(0);
+        }
+        name=args[0];
+        directory=args[1];
+
         launch(args);
     }
 }
