@@ -14,5 +14,6 @@ public class TestFile {
 
     public String getFilename() { return this.filename; }
     public void setFilename(String value) { this.filename = value; }
+    public File getFile(){return this.file;}
 
 }
