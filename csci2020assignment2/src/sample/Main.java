@@ -16,7 +16,6 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
 
 public class Main extends Application{
     private static String name, directory;
@@ -44,6 +43,10 @@ public class Main extends Application{
             tableClient.getItems().add(testFile);
         }
 
+        tableClient.setEditable(true);
+
+        File serverFile=new File("./serverFiles");
+
         TableView tableServer=new TableView();
         TableColumn<TestFile, String> serverColumn=new TableColumn<>();
         serverColumn.setMinWidth(400);
@@ -52,6 +55,13 @@ public class Main extends Application{
 
         ObservableList<TestFile> serverFiles=FXCollections.observableArrayList();
 
+        for(File entryFile:serverFile.listFiles()){
+            TestFile testFile=new TestFile(entryFile, entryFile.getName());
+            serverFiles.add(testFile);
+            tableServer.getItems().add(testFile);
+        }
+
+        tableServer.setEditable(true);
 
         GridPane buttons=new GridPane();
         Button upload=new Button("Upload");
@@ -59,27 +69,43 @@ public class Main extends Application{
             @Override
             public void handle(ActionEvent event) {
                 try{
+                    byte[] buffer = new byte[1];
+                    int bytesRead;
                     Socket socket=new Socket("localhost",8080);
                     InputStream is=socket.getInputStream();
-                    OutputStream os=socket.getOutputStream();
-                    for(File entryFile:clientFile.listFiles()){
-                        FileInputStream fis=new FileInputStream(entryFile);
-                        byte[] buffer=new byte[bufferSize];
-                        Integer bytesRead=0;
-                        while ((bytesRead=fis.read(buffer))>0){//read from file
-                            os.write(bytesRead);
-                            os.write(Arrays.copyOf(buffer, buffer.length));
+                    ByteArrayOutputStream baos=new ByteArrayOutputStream();
+                    if (is!=null){
+                        FileOutputStream fos=null;
+                        BufferedOutputStream bos=null;
+                        for (File entryFile:clientFile.listFiles()){
+                            fos=new FileOutputStream(entryFile);
+                            bos=new BufferedOutputStream(fos);
+                            bytesRead=is.read(buffer,0,buffer.length);
+                            do{
+                                baos.write(buffer);
+                                bytesRead=is.read(buffer);
+                            }while(bytesRead!=-1);
+                            bos.write(baos.toByteArray());
+                            System.out.println("File: "+entryFile.getName()+" sent");
+
+                            TestFile testFile=new TestFile(entryFile, entryFile.getName());
+                            tableServer.getItems().add(testFile);
+                            serverFiles.add(testFile);
+                            entryFile=new File("./serverFiles/"+entryFile.getName());//move the file
+
                         }
-                        TestFile serverFile=new TestFile(entryFile, entryFile.getName());
-                        serverFiles.add(serverFile);//add file to server table
+
+                        //close down everything when done
+                        bos.flush();
+                        is.close();
+                        socket.close();
+
+                        //remove contents from client folder
+                        tableClient.getItems().removeAll(testFiles);
+                        testFiles.removeAll(testFiles);
 
                     }
-                    //remove contents from client folder
-                    testFiles.removeAll(testFiles);
-                    //close down everything when done
-                    os.flush();
-                    is.close();
-                    socket.close();
+
 
                 }catch (Exception e){
                     e.printStackTrace();
@@ -92,29 +118,50 @@ public class Main extends Application{
             @Override
             public void handle(ActionEvent event) {
 
+                int bytesRead=0;
+                int current=0;
+                FileOutputStream fos=null;
+                BufferedOutputStream bos=null;
+                Socket socket=null;
+                //File clientFiles=new File("./serverFiles");
                 try{
-                    ServerSocket serverSocket=new ServerSocket(8080);
-                    for(int i=0;i<serverFiles.size();i++){
-                        testFiles.add(serverFiles.get(i));
-                        while(true){
-                            Socket socket=serverSocket.accept();
-                            //DownloadFiles downloadFile=new DownloadFiles(serverFiles.get(i).getFile());
-                            OutputStream os=socket.getOutputStream();
-                            InputStream is=socket.getInputStream();
-                            FileOutputStream fos=new FileOutputStream(is.toString());
-                            byte[] buffer=new byte[bufferSize];
-                            Integer bytesRead=0;
-                            do{
-                                
-                            }while(bytesRead==bufferSize);
+                    socket=new Socket("localhost",8080);
+                    System.out.println("Connecting...");
 
-                        }
+                    //receive file
+                    for(File entryFile:serverFile.listFiles()){
+                        TestFile testFile=new TestFile(entryFile,entryFile.getName());
+                        testFiles.add(testFile);
+                        tableClient.getItems().add(testFile);
+                        //serverFiles.remove(testFile);
+                        current=0;
+                        bytesRead=0;
+                        byte[] buffer=new byte[6022386];
+                        InputStream is=socket.getInputStream();
+                        fos=new FileOutputStream(entryFile);
+                        bos=new BufferedOutputStream(fos);
+                        bytesRead=is.read(buffer,0,buffer.length);
+                        current=bytesRead;
+
+                        do{
+                            bytesRead=is.read(buffer,current,buffer.length-current);
+                            if(bytesRead>=0) current+=bytesRead;
+
+                        }while(bytesRead>-1);
+                        bos.write(buffer,0,buffer.length);
+                        bos.flush();
+                        System.out.println("File: " +entryFile.getName() + " downloaded");
+                        entryFile=new File("./clientFiles/"+entryFile.getName());//move the file
+
                     }
 
-
+                    fos.close();
+                    bos.close();
+                    socket.close();
                 }catch(Exception e){
                     e.printStackTrace();
                 }
+                tableServer.getItems().removeAll(serverFiles);
                 serverFiles.removeAll(serverFiles);
             }
         });
