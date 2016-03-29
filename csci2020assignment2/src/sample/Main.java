@@ -1,6 +1,8 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -20,6 +22,11 @@ import java.net.*;
 public class Main extends Application{
     private static String name, directory;
     private int bufferSize=1024;
+    private TestFile selectedFile=null;
+    public File file;
+    private int countServer=0;
+    private int countClient=0;
+
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -38,16 +45,19 @@ public class Main extends Application{
         ObservableList<TestFile> testFiles= FXCollections.observableArrayList();
 
         for(File entryFile:clientFile.listFiles()){
+
             TestFile testFile=new TestFile(entryFile, entryFile.getName());
-            testFiles.add(testFile);
-            tableClient.getItems().add(testFile);
+            testFiles.add(countClient,testFile);
+            countClient++;
+            //tableClient.getItems().add(testFile);
         }
+        tableClient.setItems(testFiles);
 
         tableClient.setEditable(true);
 
         File serverFile=new File("./serverFiles");
 
-        TableView tableServer=new TableView();
+        TableView <TestFile>tableServer=new TableView();
         TableColumn<TestFile, String> serverColumn=new TableColumn<>();
         serverColumn.setMinWidth(400);
         serverColumn.setCellValueFactory(new PropertyValueFactory<>("filename"));
@@ -57,28 +67,53 @@ public class Main extends Application{
 
         for(File entryFile:serverFile.listFiles()){
             TestFile testFile=new TestFile(entryFile, entryFile.getName());
-            serverFiles.add(testFile);
-            tableServer.getItems().add(testFile);
+            serverFiles.add(countServer,testFile);
+            countServer++;
+            //tableServer.getItems().add(testFile);
         }
+        tableServer.setItems(serverFiles);
 
         tableServer.setEditable(true);
 
-        GridPane buttons=new GridPane();
+        //select file from table
+        tableClient.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                if (tableClient.getSelectionModel().getSelectedItem()!=null){
+                    selectedFile=(TestFile) newValue;
+                    file=selectedFile.getFile();
+                    System.out.println(observable.getValue());
+                }
+            }
+        });
+
+        tableServer.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                if (tableServer.getSelectionModel().getSelectedItem()!=null){
+                    selectedFile=(TestFile) newValue;
+                    file=selectedFile.getFile();
+                    System.out.println(selectedFile.getFilename());
+                }
+            }
+        });
+
+        GridPane buttons = new GridPane();
         Button upload=new Button("Upload");
         upload.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                try{
-                    byte[] buffer = new byte[1];
-                    int bytesRead;
-                    Socket socket=new Socket("localhost",8080);
-                    InputStream is=socket.getInputStream();
-                    ByteArrayOutputStream baos=new ByteArrayOutputStream();
-                    if (is!=null){
-                        FileOutputStream fos=null;
-                        BufferedOutputStream bos=null;
-                        for (File entryFile:clientFile.listFiles()){
-                            fos=new FileOutputStream(entryFile);
+                if(file!=null){
+                    try{
+                        byte[] buffer = new byte[1];
+                        int bytesRead;
+                        Socket socket=new Socket("localhost",8080);
+                        InputStream is=socket.getInputStream();
+                        ByteArrayOutputStream baos=new ByteArrayOutputStream();
+                        if (is!=null){
+                            FileOutputStream fos=null;
+                            BufferedOutputStream bos=null;
+                            fos=new FileOutputStream(file);
                             bos=new BufferedOutputStream(fos);
                             bytesRead=is.read(buffer,0,buffer.length);
                             do{
@@ -86,30 +121,37 @@ public class Main extends Application{
                                 bytesRead=is.read(buffer);
                             }while(bytesRead!=-1);
                             bos.write(baos.toByteArray());
-                            System.out.println("File: "+entryFile.getName()+" sent");
+                            System.out.println("File: "+file.getName()+" sent");
 
-                            TestFile testFile=new TestFile(entryFile, entryFile.getName());
-                            tableServer.getItems().add(testFile);
-                            serverFiles.add(testFile);
-                            entryFile=new File("./serverFiles/"+entryFile.getName());//move the file
+                            TestFile testFile=new TestFile(file, file.getName());
+                            //tableServer.getItems().add(testFile);
+                            serverFiles.add(countServer,testFile);
+                            countServer++;
+                            //remove contents from client folder
+                            //tableClient.getItems().remove(testFile);
+                            testFiles.remove(testFile);
+
+
+                            file=new File("./serverFiles/"+file.getName());//move the file
+
+
+
+                            //close down everything when done
+                            bos.flush();
+                            is.close();
+                            socket.close();
+
 
                         }
 
-                        //close down everything when done
-                        bos.flush();
-                        is.close();
-                        socket.close();
 
-                        //remove contents from client folder
-                        tableClient.getItems().removeAll(testFiles);
-                        testFiles.removeAll(testFiles);
-
+                    }catch (Exception e){
+                        e.printStackTrace();
                     }
-
-
-                }catch (Exception e){
-                    e.printStackTrace();
+                }else{
+                    System.out.println("No file selected");
                 }
+
             }
         });
 
@@ -117,28 +159,32 @@ public class Main extends Application{
         download.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
+                if (file!=null){
+                    WebServer webServer=new WebServer(file);
 
-                int bytesRead=0;
-                int current=0;
-                FileOutputStream fos=null;
-                BufferedOutputStream bos=null;
-                Socket socket=null;
-                //File clientFiles=new File("./serverFiles");
-                try{
-                    socket=new Socket("localhost",8080);
-                    System.out.println("Connecting...");
+                    int bytesRead=0;
+                    int current=0;
+                    FileOutputStream fos=null;
+                    BufferedOutputStream bos=null;
+                    Socket socket=null;
+                    //File clientFiles=new File("./serverFiles");
+                    try{
+                        socket=new Socket("localhost",8080);
+                        System.out.println("Connecting...");
 
-                    //receive file
-                    for(File entryFile:serverFile.listFiles()){
-                        TestFile testFile=new TestFile(entryFile,entryFile.getName());
-                        testFiles.add(testFile);
-                        tableClient.getItems().add(testFile);
+                        //receive file
+                        TestFile testFile=new TestFile(file,file.getName());
+                        testFiles.add(countClient,testFile);
+                        countClient++;
+                        //tableClient.getItems().add(testFile);
+                        //tableServer.getItems().remove(testFile);
+                        serverFiles.remove(testFiles.indexOf((TestFile) testFile));
                         //serverFiles.remove(testFile);
                         current=0;
                         bytesRead=0;
                         byte[] buffer=new byte[6022386];
                         InputStream is=socket.getInputStream();
-                        fos=new FileOutputStream(entryFile);
+                        fos=new FileOutputStream(file);
                         bos=new BufferedOutputStream(fos);
                         bytesRead=is.read(buffer,0,buffer.length);
                         current=bytesRead;
@@ -150,19 +196,24 @@ public class Main extends Application{
                         }while(bytesRead>-1);
                         bos.write(buffer,0,buffer.length);
                         bos.flush();
-                        System.out.println("File: " +entryFile.getName() + " downloaded");
-                        entryFile=new File("./clientFiles/"+entryFile.getName());//move the file
+                        System.out.println("File: " +file.getName() + " downloaded");
+                        file=new File("./clientFiles/"+file.getName());//move the file
 
+
+
+                        fos.close();
+                        bos.close();
+                        socket.close();
+
+
+                    }catch(Exception e){
+                        e.printStackTrace();
                     }
 
-                    fos.close();
-                    bos.close();
-                    socket.close();
-                }catch(Exception e){
-                    e.printStackTrace();
+                }else{
+                    System.out.println("No file selected");
                 }
-                tableServer.getItems().removeAll(serverFiles);
-                serverFiles.removeAll(serverFiles);
+
             }
         });
 

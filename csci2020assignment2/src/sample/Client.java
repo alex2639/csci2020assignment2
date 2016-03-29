@@ -10,6 +10,7 @@ public class Client {
             ServerSocket serverSocket=null;
             Socket socket=null;
             BufferedOutputStream bos=null;
+
             while(true){
                 System.out.println("waiting...");
                 serverSocket=new ServerSocket(8080);
