@@ -127,24 +127,14 @@ public class Main extends Application{
                             //tableServer.getItems().add(testFile);
                             serverFiles.add(countServer,testFile);
                             countServer++;
-                            //remove contents from client folder
-                            //tableClient.getItems().remove(testFile);
-                            testFiles.remove(testFile);
-
 
                             file=new File("./serverFiles/"+file.getName());//move the file
-
-
 
                             //close down everything when done
                             bos.flush();
                             is.close();
                             socket.close();
-
-
                         }
-
-
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -176,9 +166,7 @@ public class Main extends Application{
                         TestFile testFile=new TestFile(file,file.getName());
                         testFiles.add(countClient,testFile);
                         countClient++;
-                        //tableClient.getItems().add(testFile);
-                        //tableServer.getItems().remove(testFile);
-                        serverFiles.remove(testFiles.indexOf((TestFile) testFile));
+
                         //serverFiles.remove(testFile);
                         current=0;
                         bytesRead=0;
@@ -198,8 +186,6 @@ public class Main extends Application{
                         bos.flush();
                         System.out.println("File: " +file.getName() + " downloaded");
                         file=new File("./clientFiles/"+file.getName());//move the file
-
-
 
                         fos.close();
                         bos.close();
