@@ -1,0 +1,13 @@
+Ways to improve file sharer:
+
+If there were to be directories in the shared folder, you could check to see if the file is a directory
+(using "folder.isDirectory()"). If so, you could navigate through all of the files in that directory.
+
+The file sharer could use a DirectoryChooser to allow the user to select the file they want to use
+instead of hard-coding it.
+
+The file sharer could be more user-friendly by making the appearance look more organized. For example,
+the download button could be aligned with the table that has the files in the server. There could also be
+labels to label which files are on the shared folder and which files are on the server.
+
+ 
