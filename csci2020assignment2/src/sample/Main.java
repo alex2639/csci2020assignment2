@@ -116,7 +116,7 @@ public class Main extends Application{
                             fos=new FileOutputStream(file);
                             bos=new BufferedOutputStream(fos);
                             bytesRead=is.read(buffer,0,buffer.length);
-                            do{
+                            do{//write file to server
                                 baos.write(buffer);
                                 bytesRead=is.read(buffer);
                             }while(bytesRead!=-1);
@@ -167,7 +167,6 @@ public class Main extends Application{
                         testFiles.add(countClient,testFile);
                         countClient++;
 
-                        //serverFiles.remove(testFile);
                         current=0;
                         bytesRead=0;
                         byte[] buffer=new byte[6022386];
@@ -177,7 +176,7 @@ public class Main extends Application{
                         bytesRead=is.read(buffer,0,buffer.length);
                         current=bytesRead;
 
-                        do{
+                        do{//read file from server
                             bytesRead=is.read(buffer,current,buffer.length-current);
                             if(bytesRead>=0) current+=bytesRead;
 
@@ -185,7 +184,10 @@ public class Main extends Application{
                         bos.write(buffer,0,buffer.length);
                         bos.flush();
                         System.out.println("File: " +file.getName() + " downloaded");
-                        file=new File("./clientFiles/"+file.getName());//move the file
+
+                        File movedFile=new File("./clientFiles/"+file.getName());
+
+                        //file=new File("./clientFiles/"+file.getName());//move the file
 
                         fos.close();
                         bos.close();
